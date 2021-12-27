@@ -22,8 +22,11 @@ func init() {
     dbName:=os.Getenv("DB_NAME")
     
     dsn := fmt.Sprintf("%s:%s@tcp(%s:3306)/%s?charset=utf8&parseTime=True&loc=Local&timeout=10ms",dbUser,dbPass,dbHost,dbName)
+
     var err error
     Db, err = gorm.Open("mysql", dsn)
+    //開啟gorm log可以顯示SQL語句
+    Db.LogMode(true)
 
     if err != nil {
         fmt.Printf("mysql connect error %v", err)

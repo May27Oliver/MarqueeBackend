@@ -12,6 +12,7 @@ func InitRouter() *gin.Engine {
     //設定cors
 	router.Use(cors.Default())
     //GET
+    router.GET("getMarqueeSymbols",apis.GetMarqueeSymbols)
     router.GET("getSymbols/:groupname",apis.GetSymbols)
     router.GET("getSpeed",apis.GetSpeed)
     router.GET("getGroupName",apis.GetGroupName)

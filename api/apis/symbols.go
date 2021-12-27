@@ -3,7 +3,7 @@ package apis
 import (
 	"MarqueeBackstage/api/database"
 	model "MarqueeBackstage/api/models"
-	"log"
+	"fmt"
 	"net/http"
 	"strings"
 
@@ -32,6 +32,44 @@ type updateGroupRequest struct{
 type updateSpeedRequest struct{
 	Speed int `json:speed`
 }
+type groupSymbol struct{
+	groupName []model.GroupName
+	symbols []model.Symbol
+}
+
+func GetMarqueeSymbols(c *gin.Context){
+	var groupname model.GroupName
+	resGroupName,err := groupname.GroupNameQuery()
+	if err!= nil{
+		c.JSON(http.StatusOK,gin.H{
+			"result":false,
+			"message":"無法取得播放群組",
+		})
+		return
+	}
+	// log.Printf("resGroupName: %s" , resGroupName)
+	var symbol model.Symbol
+	groupId:= fmt.Sprintf("%b",resGroupName[0].GroupID)
+	res,err := symbol.SymbolQuery(groupId)
+	if err!= nil{
+		c.JSON(http.StatusOK,gin.H{
+			"result":false,
+			"message":"查無資料",
+		})
+		return
+	}
+	var resSymbols []string
+	
+	for _,v := range res {
+		resSymbols = append(resSymbols,v.Symbol)
+	}
+
+	// log.Printf("resSymbols: %s" , resSymbols)
+	c.JSON(http.StatusOK,gin.H{
+		"result":true,
+		"symbols":resSymbols,
+	})
+}
 
 //取得群組
 func GetSymbols(c *gin.Context){
@@ -50,13 +88,26 @@ func GetSymbols(c *gin.Context){
 	}
 	c.JSON(http.StatusOK,gin.H{
 		"result":true,
-		"data":result,
+		"symbols":result,
 	})
 }
 //取得速度
 func GetSpeed(c *gin.Context){
-
+	var speed model.Speed
+	result,err:=speed.GetSpeed()
+	if err!= nil{
+		c.JSON(http.StatusOK,gin.H{
+			"result":false,
+			"message":err,
+		})
+		return
+	}
+	c.JSON(http.StatusOK,gin.H{
+		"result":true,
+		"speed":result,
+	})
 }
+
 //取得群組名稱
 func GetGroupName(c *gin.Context){
 	var groupname model.GroupName
@@ -70,11 +121,12 @@ func GetGroupName(c *gin.Context){
 	}
 	c.JSON(http.StatusOK,gin.H{
 		"result":true,
-		"data":result,
+		"groupName":result[0],
 	})
 } 
 //增加群組symbol
 func AddSymbol(c *gin.Context){
+	var symbol model.Symbol
 	req:= addDeleteRequest{}
 	if err:=c.BindJSON(&req); err!=nil{
 		c.String(http.StatusPaymentRequired,err.Error())
@@ -82,19 +134,19 @@ func AddSymbol(c *gin.Context){
 	}
 	req_data := model.Symbol{GroupID: req.GroupId,Symbol: req.Symbol.Symbol,StockName:req.Symbol.StockName,Show:true,MarqueeOrder:req.Symbol.MarqueeOrder}
 	// log.Printf("Request data: %s" , req_data)
-	result:=database.Db.Debug().Create(&req_data)
+	err := symbol.AddSymbol(req_data)
 	
-	if result.Error!=nil{
+	if err != nil {
 		c.JSON(http.StatusOK,gin.H{
 			"result":false,
 			"message":"新增失敗",
 		})
+		return
 	}
 	c.JSON(http.StatusOK,gin.H{
 		"result":true,
 		"message":"新增成功",
 	})
-	return
 }
 // 匯入csv
 func ImportSymbols(c *gin.Context){
@@ -109,7 +161,6 @@ func ImportSymbols(c *gin.Context){
 	connInfo :=[]interface{}{}
 
 	for _,v := range req.Symbols { 
-		log.Printf("Request data: %s" , req.Symbols)
 		sqlStr += "(?, ?, ?, ?, ?),"
 		connInfo = append(connInfo,req.GroupId,v.Symbol,true,v.StockName,v.MarqueeOrder)
 	}
@@ -129,34 +180,83 @@ func ImportSymbols(c *gin.Context){
 		"message":"新增成功",
 	})
 }
+
 // 更新播放群組
 func UpdateGroupNo(c *gin.Context){
-	database.Db.Model(&model.GroupName{}).Update("play",false);
+	var groupname model.GroupName
+	if err:= groupname.CloseAllGroupName();err!=nil{
+		c.JSON(http.StatusOK,gin.H{
+			"result":false,
+			"message":err,
+		})
+		return
+	}
+
 	req:= updateGroupRequest{}
 	if err := c.BindJSON(&req); err != nil {
 		c.String(http.StatusPaymentRequired,err.Error())
 		return
 	}
-	database.Db.Model(&model.GroupName{}).Where("group_id = ?",req.GroupId).Update("play",true)
+
+	if err:=groupname.UpdateGroupName(req.GroupId);err!=nil{
+		c.JSON(http.StatusOK,gin.H{
+			"result":false,
+			"message":err,
+		})
+		return
+	}
+	c.JSON(http.StatusOK,gin.H{
+		"result":false,
+		"message":"更新播放群組成功",
+	})
 }
 
 func UpdateSpeed(c *gin.Context){
-	database.Db.Model(&model.Speed{}).Update("use",false);
+	var speed model.Speed
+	if err := speed.CloseAllSpeed(); err != nil {
+		c.JSON(http.StatusOK,gin.H{
+			"result":false,
+			"message":err,
+		})
+		return
+	}
 	req:= updateSpeedRequest{}
 	if err := c.BindJSON(&req); err != nil {
 		c.String(http.StatusPaymentRequired,err.Error())
 		return
 	}
-	database.Db.Model(&model.Speed{}).Where("speed = ?",req.Speed).Update("play",true)
+
+	if err := speed.UpdateSpeed(req.Speed); err != nil{
+		c.JSON(http.StatusOK,gin.H{
+			"result":false,
+			"message":err,
+		})
+		return
+	}
+	c.JSON(http.StatusOK,gin.H{
+		"result":true,
+		"message":"更新成功",
+	})
 }
 
 //刪除symbol
 func DeleteSymbol(c *gin.Context){
-	req:=addDeleteRequest{}
-	if err:=c.BindJSON(&req);err!=nil{
+	var symbol model.Symbol
+	req := addDeleteRequest{}
+	if err := c.BindJSON(&req);err!=nil{
 		c.String(http.StatusPaymentRequired,err.Error())
 		return
 	}
-	// log.Printf("Request data: %s" , req)
-	database.Db.Where("group_Id = ? and marquee_order = ?",req.GroupId,req.Symbol.MarqueeOrder).Delete(model.Symbol{})
+	err := symbol.DeleteSymbol(req.GroupId,req.Symbol.MarqueeOrder)
+	if err != nil{
+		c.JSON(http.StatusOK,gin.H{
+			"result":false,
+			"message":err,
+		})
+		return
+	}
+	c.JSON(http.StatusOK,gin.H{
+		"result":true,
+		"message":"刪除成功",
+	})
 }

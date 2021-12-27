@@ -35,7 +35,7 @@ type GroupName struct {
 
 func main() {
 	defer database.Db.Close() //db關閉
-	
+
 	// Migrate the schema
 	database.Db.AutoMigrate(&Symbols{}, &Speed{}, &GroupName{})
 	router := router.InitRouter()
