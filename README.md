@@ -32,6 +32,7 @@ speed INT
 type GroupName struct{
 groupID INT
 groupName string
+Play bool
 }
 
 3.gorm AutoMigrate 建立資料表並時時更新。

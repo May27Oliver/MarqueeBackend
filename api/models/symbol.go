@@ -14,7 +14,7 @@ type Symbol struct{
 	
 type Speed struct {
 	Speed int `gorm:"primary_key"`
-	Use bool
+	Selected bool
 }
 	
 type GroupName struct{
@@ -59,7 +59,7 @@ func (symbol Symbol) DeleteSymbol(groupId int,marqueeOrder int)(err error){
 
 //查詢速度
 func (speed Speed) GetSpeed()(num Speed,err error){
-	if err = database.Db.Where("`use` = ?", true).Find(&num).Error;err!=nil{
+	if err = database.Db.Where("`selected` = ?", true).Find(&num).Error;err!=nil{
 		return
 	}
 	return
@@ -67,7 +67,7 @@ func (speed Speed) GetSpeed()(num Speed,err error){
 
 //更改播放速度
 func (speed Speed) UpdateSpeed(num int)(err error){
-	if result := database.Db.Model(&Speed{}).Where("speed = ?",num).Update("use",true);result.Error!=nil{
+	if result := database.Db.Model(&Speed{}).Where("speed = ?",num).Update("selected",true);result.Error!=nil{
 		return
 	}
 	return
@@ -75,7 +75,7 @@ func (speed Speed) UpdateSpeed(num int)(err error){
 
 //全部速度停用
 func (speed Speed) CloseAllSpeed()(err error){
-	if result := database.Db.Model(&Speed{}).Update("use",false);result.Error!=nil{
+	if result := database.Db.Model(&Speed{}).Update("selected",false);result.Error!=nil{
 		return
 	}
 	return

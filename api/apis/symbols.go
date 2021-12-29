@@ -4,6 +4,7 @@ import (
 	"MarqueeBackstage/api/database"
 	model "MarqueeBackstage/api/models"
 	"fmt"
+	"log"
 	"net/http"
 	"strings"
 
@@ -22,7 +23,7 @@ type addDeleteRequest struct{
 }
 type importRequest struct{
 	GroupId int `json:groupId`
-	Symbols []symbol `json:symbol`
+	Symbols []symbol `json:symbols`
 }
 
 type updateGroupRequest struct{
@@ -31,6 +32,7 @@ type updateGroupRequest struct{
 
 type updateSpeedRequest struct{
 	Speed int `json:speed`
+	Selected bool
 }
 type groupSymbol struct{
 	groupName []model.GroupName
@@ -49,7 +51,7 @@ func GetMarqueeSymbols(c *gin.Context){
 	}
 	// log.Printf("resGroupName: %s" , resGroupName)
 	var symbol model.Symbol
-	groupId:= fmt.Sprintf("%b",resGroupName[0].GroupID)
+	groupId:= fmt.Sprintf("%v",resGroupName[0].GroupID)
 	res,err := symbol.SymbolQuery(groupId)
 	if err!= nil{
 		c.JSON(http.StatusOK,gin.H{
@@ -58,6 +60,7 @@ func GetMarqueeSymbols(c *gin.Context){
 		})
 		return
 	}
+	// log.Printf("res: %s" , res)
 	var resSymbols []string
 	
 	for _,v := range res {
@@ -112,6 +115,7 @@ func GetSpeed(c *gin.Context){
 func GetGroupName(c *gin.Context){
 	var groupname model.GroupName
 	result,err := groupname.GroupNameQuery()
+	log.Printf("Request data: %s" , result)
 	if err!= nil{
 		c.JSON(http.StatusOK,gin.H{
 			"result":false,
@@ -155,6 +159,7 @@ func ImportSymbols(c *gin.Context){
 		c.String(http.StatusPaymentRequired,err.Error())
 		return
 	}
+	log.Printf("req.Symbols: %s" , req.Symbols)
 
 	sqlStr:="INSERT INTO `symbols` (group_id,symbol,`show`,stock_name,marquee_order) VALUES "
 	
@@ -183,18 +188,20 @@ func ImportSymbols(c *gin.Context){
 
 // 更新播放群組
 func UpdateGroupNo(c *gin.Context){
+	req:= updateGroupRequest{}
+	if err := c.BindJSON(&req); err != nil {
+		c.String(http.StatusPaymentRequired,err.Error())
+		return
+	}
+	if req.GroupId == 0 {
+		return
+	}
 	var groupname model.GroupName
 	if err:= groupname.CloseAllGroupName();err!=nil{
 		c.JSON(http.StatusOK,gin.H{
 			"result":false,
 			"message":err,
 		})
-		return
-	}
-
-	req:= updateGroupRequest{}
-	if err := c.BindJSON(&req); err != nil {
-		c.String(http.StatusPaymentRequired,err.Error())
 		return
 	}
 
@@ -206,7 +213,7 @@ func UpdateGroupNo(c *gin.Context){
 		return
 	}
 	c.JSON(http.StatusOK,gin.H{
-		"result":false,
+		"result":true,
 		"message":"更新播放群組成功",
 	})
 }
