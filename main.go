@@ -20,7 +20,9 @@ func main() {
 	Port :=os.Getenv("API_PORT")
 	listenPort := fmt.Sprintf(":%s",Port)
 	// Migrate the schema
-	database.Db.AutoMigrate(&model.Symbol{}, &model.Speed{}, &model.GroupName{})
+	database.Db.AutoMigrate(&model.Symbol{}, &model.Speed{}, &model.GroupName{},&model.Member{},&model.MarqueeConfig{})
 	router := router.InitRouter()
 	router.Run(listenPort)
 }
+
+//INSERT INTO marquee_configs values (1,speed,40),(2,direction,1)

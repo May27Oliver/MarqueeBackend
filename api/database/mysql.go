@@ -11,29 +11,28 @@ import (
 
 var Db *gorm.DB
 
-func init() { 
-    envErr :=godotenv.Load()
-    if envErr != nil{
-        panic("Failed to load env file")
-    }
-    dbUser:=os.Getenv("DB_USER")
-    dbPass:=os.Getenv("DB_PASS")
-    dbHost:=os.Getenv("DB_HOST")
-    dbName:=os.Getenv("DB_NAME")
-    
-    dsn := fmt.Sprintf("%s:%s@tcp(%s)/%s?charset=utf8&parseTime=True&loc=Local&timeout=10ms",dbUser,dbPass,dbHost,dbName)
+func init() {
+	envErr := godotenv.Load()
+	if envErr != nil {
+		panic("Failed to load env file")
+	}
+	dbUser := os.Getenv("DB_USER")
+	dbPass := os.Getenv("DB_PASS")
+	dbHost := os.Getenv("DB_HOST")
+	dbName := os.Getenv("DB_NAME")
 
-    var err error
-    Db, err = gorm.Open("mysql", dsn)
-    //開啟gorm log可以顯示SQL語句
-    Db.LogMode(true)
+	dsn := fmt.Sprintf("%s:%s@tcp(%s)/%s?charset=utf8&parseTime=True&loc=Local&timeout=10ms", dbUser, dbPass, dbHost, dbName)
 
-    if err != nil {
-        fmt.Printf("mysql connect error %v", err)
-    }
+	var err error
+	Db, err = gorm.Open("mysql", dsn)
+	//開啟gorm log可以顯示SQL語句
+	Db.LogMode(true)
 
-    if Db.Error != nil {
-        fmt.Printf("database error %v", Db.Error)
-    }
+	if err != nil {
+		fmt.Printf("mysql connect error %v", err)
+	}
+
+	if Db.Error != nil {
+		fmt.Printf("database error %v", Db.Error)
+	}
 }
-
